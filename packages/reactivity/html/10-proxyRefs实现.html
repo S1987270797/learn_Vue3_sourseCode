@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/vue/dist/vue.global.js"></script> -->
+    <script src="../dist/reactivity.global.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+    <div id="box"></div>
+    <script>
+      // const { ref, effect, toRefs, reactive, proxyRefs } = Vue;
+      const { ref, effect, toRefs, reactive, proxyRefs } = VueReactivity;
+
+      const name = ref("red");
+      const age = ref(18);
+
+      // 将ref的值转为reactive
+      const states = proxyRefs({
+        name,
+        age,
+        height: 180,
+      });
+
+      effect(() => {
+        app.innerHTML = states.age;
+        box.innerHTML = states.height;
+      });
+
+      setTimeout(() => {
+        states.age = 19;
+        states.height = 200;
+      }, 1000);
+    </script>
+  </body>
+</html>

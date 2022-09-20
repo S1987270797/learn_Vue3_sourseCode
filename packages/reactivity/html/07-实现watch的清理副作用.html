@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <!-- <script src="../../../node_modules/vue/dist/vue.global.js"></script> -->
+  <script src="../dist/reactivity.global.js"></script>
+</head>
+
+<body>
+  <script>
+    // const { watch, reactive } = Vue;
+    const { watch, reactive } = VueReactivity;
+    const states = reactive({ name: 'red', age: 18, course: { id: 'Chiness', score: 90 } })
+    
+    let i = 2000;
+    function getData(timer) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve(timer)
+          console.log(timer);
+        }, timer)
+      })
+    }
+
+    // debugger
+    watch(() => states.age, async (newVal, oldVal, onCleanup) => {
+      let clear = false;
+      // onCleanup是watch函数提供的一个函数，执行它需要传入一个函数。传入的函数会在watch第二个函数之前执行。
+      onCleanup(() => {
+        console.log("invoke onCleanup");
+        clear = true;
+      })
+      i -= 1000;
+      let r = await getData(i);
+      if (!clear) document.body.innerHTML = r;
+    }, { flush: 'sync' })
+
+    /* // 下面代码是先展示 0 ,再展示1000. 模拟的是网络请求的快慢违反我们的意愿.加防抖也无法彻底解决. 目标结果是最终显示0
+    watch(() => states.age, async (newVal, oldVal, onCleanup) => {
+      let clear = false;
+      i -= 1000;
+      let r = await getData(i);
+      if (!clear) document.body.innerHTML = r;
+    }, { flush: 'sync' }) */
+
+    states.age = 19;
+    states.age = 20;
+  </script>
+</body>
+
+</html>

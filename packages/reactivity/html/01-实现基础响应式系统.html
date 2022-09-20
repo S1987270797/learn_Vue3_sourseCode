@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="../dist/reactivity.global.js"></script>
+  <!-- <script src="../../../node_modules/.pnpm/@vue+reactivity@3.2.37/node_modules/@vue//reactivity/dist/reactivity.global.js">
+  </script> -->
+</head>
+
+<body>
+  <div id="app"></div>
+  <script>
+    const { reactive, effect } = VueReactivity
+
+    const data = {
+      name: 'red',
+      age: 18,
+      address: '北京',
+      phone: 621256,
+
+      friend: {
+        name: 'blue',
+        age: 20
+      }
+    }
+
+    debugger
+    const states = reactive(data)
+
+    effect(() => {
+      app.innerHTML = '我是' + states.name + ',' + states.age + '岁.'
+      states.age = 20
+      effect(() => {
+        return states.address
+      })
+      return states.phone
+      console.log(states.friend.name);
+    })
+
+    setTimeout(() => {
+      states.age = 100
+      console.log(states.age);
+    }, 2000)
+
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="../dist/reactivity.global.js"></script>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script>
+    const { reactive, effect } = VueReactivity
+    const states = reactive({ flag: true, name: 'red', age: 18, })
+    effect(() => {
+      app.innerHTML = states.flag ? states.name : states.age
+      console.log('执行effect');
+    })
+
+    setTimeout(() => {
+      console.log('修改flag');
+      debugger
+      states.flag = false; // 改变flag，只需触发age的响应式
+      setTimeout(() => {
+        console.log('修改name');
+        // 此时flag === false, 修改name理应不触发响应式.
+        states.name = 'blue'
+      }, 1000)
+    }, 1000);
+
+  </script>
+</body>
+
+</html>

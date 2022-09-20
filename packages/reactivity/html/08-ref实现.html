@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>08-ref实现</title>
+    <!-- <script src="../../../node_modules/vue/dist/vue.global.js"></script> -->
+    <script src="../dist/reactivity.global.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+    <script>
+      // const { ref, effect } = Vue;
+      const { ref, effect } = VueReactivity;
+
+      const flag = ref(false);
+      effect(() => {
+        app.innerHTML = flag.value ? "better" : "good";
+      });
+
+      setTimeout(() => {
+        flag.value = true;
+      }, 1000);
+    </script>
+  </body>
+</html>
