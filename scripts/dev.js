@@ -25,6 +25,9 @@ build({
   format: outputFormat,
   globalName: pkg.buildOptions?.name,
   platform: format === "cjs" ? "node" : "browser",
+  define: {
+    __DEV__: `true`,
+  },
   watch: {
     onRebuild(error) {
       if (error) console.log("error, please rebuilt");

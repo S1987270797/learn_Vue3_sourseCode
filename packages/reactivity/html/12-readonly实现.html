@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/vue/dist/vue.global.js"></script> -->
+    <script src="../dist/reactivity.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      // const { ref, effect, toRefs, reactive, proxyRefs } = Vue;
+      const { reactive, readonly, effect, isReactive, isReadonly } = VueReactivity;
+
+      const states = reactive({ name: "blue" });
+      const readonlyProxy = readonly({ name: "red" });
+
+      // 测试isReadonly
+      console.log(isReactive(states), isReactive(readonlyProxy));
+      console.log(isReadonly(states), isReadonly(readonlyProxy));
+
+      // 给reactive代理一个readonly对象.
+      console.log(reactive(readonlyProxy) === readonlyProxy);
+
+      effect(() => {
+        app.innerHTML = readonlyProxy.name;
+      });
+
+      setTimeout(() => {
+        readonlyProxy.name = "blue";
+      }, 1000);
+    </script>
+  </body>
+</html>

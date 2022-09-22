@@ -23,8 +23,11 @@ var VueReactivity = (() => {
   __export(src_exports, {
     computed: () => computed,
     effect: () => effect,
+    isReactive: () => isReactive,
+    isReadonly: () => isReadonly,
     proxyRefs: () => proxyRefs,
     reactive: () => reactive,
+    readonly: () => readonly,
     ref: () => ref,
     toRaw: () => toRaw,
     toRefs: () => toRefs,
@@ -125,19 +128,27 @@ var VueReactivity = (() => {
   }
 
   // packages/reactivity/src/baseHandler.ts
-  var mutableHandlers = {
-    get(target, key, receiver) {
+  var get = createGetter();
+  var readonlyGet = createGetter(true);
+  function createGetter(isReadonly2 = false) {
+    return function get2(target, key, receiver) {
       if (key === "__v_isReactive" /* IS_REACTIVE */) {
-        return true;
+        return !isReadonly2;
+      } else if (key === "__v_isReadonly" /* IS_READONLY */) {
+        return isReadonly2;
       } else if (key === "__v_raw" /* RAW */ && receiver === reactiveMap.get(target)) {
         return target;
       }
       track(target, 0, key);
       const res = Reflect.get(target, key, receiver);
-      if (isObject(res))
-        return reactive(res);
+      if (isObject(res)) {
+        return isReadonly2 ? readonly(res) : reactive(res);
+      }
       return res;
-    },
+    };
+  }
+  var mutableHandlers = {
+    get,
     set(target, key, value, receiver) {
       let oldValue = target[key];
       if (oldValue === value)
@@ -147,23 +158,47 @@ var VueReactivity = (() => {
       return result;
     }
   };
+  var readonlyHandlers = {
+    get: readonlyGet,
+    set(target, key) {
+      console.warn(`Set operation on key "${String(key)}" failed: target is readonly.`, target);
+      return true;
+    },
+    deleteProperty(target, key) {
+      console.warn(`Delete operation on key "${String(key)}" failed: target is readonly.`, target);
+      return true;
+    }
+  };
 
   // packages/reactivity/src/reactive.ts
-  var reactiveMap = /* @__PURE__ */ new WeakMap();
-  function isReactive(value) {
-    return !!(value && value["__v_isReactive" /* IS_REACTIVE */]);
-  }
-  function reactive(target) {
+  function createReactiveObject(target, isReadonly2, baseHandlers) {
     if (!isObject(target))
       return;
+    if (target["__v_raw" /* RAW */] && !(isReadonly2 && target["__v_isReactive" /* IS_REACTIVE */]))
+      return target;
     let existingProxy = reactiveMap.get(target);
     if (existingProxy)
       return existingProxy;
     if (target["__v_isReactive" /* IS_REACTIVE */])
       return target;
-    const proxy = new Proxy(target, mutableHandlers);
+    const proxy = new Proxy(target, baseHandlers);
     reactiveMap.set(target, proxy);
     return proxy;
+  }
+  var reactiveMap = /* @__PURE__ */ new WeakMap();
+  function isReactive(value) {
+    return !!(value && value["__v_isReactive" /* IS_REACTIVE */]);
+  }
+  function isReadonly(value) {
+    return !!(value && value["__v_isReadonly" /* IS_READONLY */]);
+  }
+  function reactive(target) {
+    if (isReadonly(target))
+      return target;
+    return createReactiveObject(target, false, mutableHandlers);
+  }
+  function readonly(target) {
+    return createReactiveObject(target, true, readonlyHandlers);
   }
   var toReactive = (value) => isObject(value) ? reactive(value) : value;
   function toRaw(observed) {
