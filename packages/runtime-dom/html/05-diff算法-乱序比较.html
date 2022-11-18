@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let { h, render, Text } = VueRuntimeDOM;
+      // debugger;
+      render(
+        h(
+          "h1",
+          { style: { color: "red" } },
+          // 儿子
+          [
+            h("span", { key: "a" }, "a"),
+            h("span", { key: "b" }, "b"),
+            h("span", { key: "c" }, "c"),
+            h("span", { key: "d" }, "d"),
+            h("span", { key: "e" }, "e"),
+            h("span", { key: "j" }, "j"),
+            h("span", { key: "f" }, "f"),
+            h("span", { key: "g" }, "g"),
+          ]
+        ),
+        app
+      );
+
+      setTimeout(() => {
+        render(
+          h(
+            "h1",
+            { style: { fontSize: "50px" } },
+            // 儿子
+            [
+              h("span", { key: "a" }, "a"),
+              h("span", { key: "b" }, "b"),
+              h("span", { key: "e" }, "e"),
+              h("span", { style: { color: "green" }, key: "c" }, "c"),
+              h("span", { key: "d" }, "d"),
+              h("span", { key: "h" }, "h"),
+              h("span", { key: "f" }, "f"),
+              h("span", { key: "g" }, "g"),
+            ]
+          ),
+          app
+        );
+      }, 1000);
+    </script>
+  </body>
+</html>

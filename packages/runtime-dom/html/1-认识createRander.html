@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script>
+    <!-- <script src="../dist/runtime-dom.global.js"></script> -->
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let { createRenderer, h, render } = VueRuntimeDOM;
+
+      const DOMCreateElement = element => document.createElement(element);
+      const DOMSetElementText = (el, text) => {
+        el.innerHTML = text;
+      };
+      const DOMInsert = (el, container) => {
+        container.appendChild(el);
+      };
+      const DOMPatchProp = (el, key, prevValue, nextValue) => {
+        console.log(el, key, nextValue);
+      };
+
+      // 创建一个自定义渲染器,通过不同平台提供的不同的节点创建以及更改节点api, 你可以在不同开发环境中也享受Vue核心运行时的特性
+      let renderer = createRenderer({
+        createElement: DOMCreateElement,
+        setElementText: DOMSetElementText,
+        insert: DOMInsert,
+        patchProp: DOMPatchProp,
+      });
+
+      // 自己创建的render函数
+      // renderer.render(h("h1", { style: { color: "red" } }, "hello"), app);
+      // renderer.render(h( 'div', 'hello' ), app);
+      // renderer.render(h('div', { id: 'foo' }), app);
+
+      // vue自带的render函数
+      // render(h("div", { id: "foo" }), app);
+      render(h("div", { class: "container" }, "hello", "world"), app);
+    </script>
+  </body>
+</html>

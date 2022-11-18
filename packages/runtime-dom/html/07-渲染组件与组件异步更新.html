@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let { h, render } = VueRuntimeDOM;
+      debugger // 调试记得按F9
+
+      const VueComponent = {
+        data() {
+          return { name: "red", age: 12 };
+        },
+        render() {
+          setTimeout(() => {
+            this.name += 1;
+            this.age++;
+          }, 1000);
+
+          // 组件的render函数必须返回一个vnode
+          return h("p", `${this.name}今年${this.age}岁了`);
+        },
+      };
+      // 渲染一个组件，这个组件的内容是一个p标签
+      render(h(VueComponent), app);
+    </script>
+  </body>
+</html>

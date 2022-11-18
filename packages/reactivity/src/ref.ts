@@ -1,12 +1,14 @@
 /* 10-html */
-import { isArray, isObject } from "@vue/shared";
+import { hasChange, isArray, isObject } from "@vue/shared";
 import { toReactive } from "./reactive";
 import { trackEffects, triggerEffects } from "./effect";
 
 class RefImpl<T> {
   private _value: T;
   private __v_isRef = true;
+
   public dep = new Set();
+
   constructor(public rawValue: T) {
     this._value = toReactive(rawValue);
   }
@@ -17,11 +19,12 @@ class RefImpl<T> {
   }
 
   set value(newValue) {
-    if (newValue === this.rawValue) return;
-
-    this._value = toReactive(newValue);
-    this.rawValue = newValue;
-    triggerEffects(this.dep);
+    // 有变化
+    if (hasChange(newValue, this.rawValue)) {
+      this._value = toReactive(newValue);
+      this.rawValue = newValue;
+      triggerEffects(this.dep);
+    }
   }
 }
 
@@ -42,8 +45,9 @@ class ObjectRefImpl {
   }
 }
 
+// 使用toRef的对象都已经是reactive对象. 只需要再去获取一遍就行.
 export function toRef(object: any, key: any) {
-  // 返回的是一个ObjectRefImpl实例. 
+  // 返回的是一个ObjectRefImpl实例.
   return new ObjectRefImpl(object, key);
 }
 
@@ -57,6 +61,10 @@ export function toRefs(object: any) {
   }
 
   return result;
+}
+
+export function isRef(r: any) {
+  return !!(r && r.__v_isRef === true);
 }
 
 /* -------------------------------proxyRefs---------------------------- */

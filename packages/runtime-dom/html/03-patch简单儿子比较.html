@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let { h, render, Text } = VueRuntimeDOM;
+      /* // 1.两个元素type不一样（Element，Text）
+      render(h("div", { class: "container" }, "hello"), app); */
+
+      // 2.都是Text的情况.
+      // render(h(Text, "hello"), app);
+
+      // 3.type不同的情况. 直接删除旧的, 新的完全覆盖旧的
+      // render(h("div", { class: "container" }, "hello"), app);
+
+      // 4.type相同, props不同, 使用patchProps方法
+      // render(h("div", { class: "container", style: { color: "black" } }, "hello"), app);
+
+      // 5. children不同的情况
+      // 5.1 旧的是数组，新的是文本
+      render(h("div", { class: "container", style: { color: "black" } }, ["hello", "world"]), app);
+      // 5.2 旧的是数组，新的数组 (还没写)
+      // render(h("div", { class: "container", style: { color: "black" } }, ["hello", "world"]), app);
+      // 5.3 旧的是文本，新的是数组，
+      // render(h("div", { class: "container", style: { color: "black" } }, "hello world"), app);
+      // 5.4 旧的是文本，新的是文本，
+      // render(h("div", { class: "container", style: { color: "black" } }, "hello world"), app);
+
+      setTimeout(() => {
+        /* // 1.两个元素type不一样（Element，Text）
+        render(h(Text, "world"), app); */
+
+        // 2.都是Text的情况.
+        // render(h(Text, "world"), app);
+
+        // 3.type不同的情况.直接删除旧的, 新的完全覆盖旧的
+        // render(h("span", { class: "container" }, "hello"), app);
+
+        // 4.type相同, props不同, 使用patchProps方法
+        // render(h("div", { class: "container", style: { color: "red" } }, "hello"), app);
+
+        // 5. children不同的情况
+        // 5.1 旧的是数组，新的是文本
+        render(h("div", { class: "container", style: { color: "red" } }, "hello universe"), app);
+        // 5.2 旧的是数组，新的数组
+        // render(h("div", { class: "container", style: { color: "red" } }, ["hello", "universe"]), app);
+        // 5.3 旧的是文本，新的是数组，
+        // render(
+        //   h("div", { class: "container", style: { color: "red" } }, ["hello", "universe"]),
+        //   app
+        // );
+        // 5.4 旧的是文本，新的是文本，
+        // render(h("div", { class: "container", style: { color: "red" } }, "hello universe"), app);
+      }, 1000);
+    </script>
+  </body>
+</html>

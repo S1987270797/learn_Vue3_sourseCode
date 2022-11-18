@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/vue/dist/vue.global.js"></script> -->
+    <script src="../dist/reactivity.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      // const { ref, effect, toRefs, reactive, proxyRefs } = Vue;
+      const { reactive, ref, effect } = VueReactivity;
+
+      const states = reactive({ name: "red", age: 20, phone: 1388888888 });
+
+      effect(() => {
+        app.innerHTML = states.phone;
+      });
+
+      // 给new Proxy(get, set, deleteProperty, ownkey等方法)
+      setTimeout(() => {
+        debugger;
+        // delete
+        delete states.phone;
+        console.log(states);
+
+        // has
+        console.log("name" in states);
+
+        // ownKeys
+        for (let k in states) {
+          console.log(k);
+        }
+
+        // set
+        states.id = undefined;
+
+        console.log(states);
+      }, 1000);
+    </script>
+  </body>
+</html>

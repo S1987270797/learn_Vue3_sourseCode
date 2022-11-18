@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/vue/dist/vue.global.js"></script> -->
+    <script src="../dist/reactivity.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      // const { ref, effect, toRefs, reactive, proxyRefs } = Vue;
+      const { reactive, ref, effect } = VueReactivity;
+
+      const arr = reactive(["red", "green", "blue"]);
+
+      // debugger;
+      effect(() => {
+        app.innerHTML = arr.length;
+        /* // 1.数组清空
+        app.innerHTML = arr[0]; */
+
+        /* // 2.改变数组长度
+        app.innerHTML = arr.length; */
+
+        // 3.push unshift shift pop splice 使用这几个方法会默认读取length,修改length问题
+        // 获取length => 修改length => 执行effect _=>_ 获取length => 修改length ....
+        // 如果不在triggerEffect里面做判断, 这里一条push代码就会造成爆栈
+        arr.push("black");
+        console.log("执行effect函数");
+      });
+
+      // 两个effect同时依赖同一数组, 使用push等方法就爆栈了, 此时需要重写这些方法
+      effect(() => {
+        arr.push("purple");
+      });
+
+      setTimeout(() => {
+        /* // 1.数组清空
+        // 在trigger中添加操作length的判断.
+        arr.length = 0;
+         */
+        /* // 2.改变数组长度
+        // 在trigger的ADD判断中添加 是数组的话无条件添加length的effect,做到改变长度一定执行length的effect
+        arr[100] = 100;
+         */
+        // 3.push unshift shift pop splice使用这几个方法会默认读取length,修改length问题
+        arr.push("white");
+      }, 1000);
+    </script>
+  </body>
+</html>

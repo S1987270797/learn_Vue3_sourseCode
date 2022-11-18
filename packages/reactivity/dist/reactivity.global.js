@@ -21,27 +21,61 @@ var VueReactivity = (() => {
   // packages/reactivity/src/index.ts
   var src_exports = {};
   __export(src_exports, {
+    ReactiveEffect: () => ReactiveEffect,
     computed: () => computed,
     effect: () => effect,
     isReactive: () => isReactive,
     isReadonly: () => isReadonly,
+    isShallow: () => isShallow,
+    markRaw: () => markRaw,
     proxyRefs: () => proxyRefs,
     reactive: () => reactive,
     readonly: () => readonly,
     ref: () => ref,
+    shallowReactive: () => shallowReactive,
     toRaw: () => toRaw,
     toRefs: () => toRefs,
     watch: () => watch
   });
 
+  // packages/shared/src/makeMap.ts
+  function makeMap(str, expectsLowerCase) {
+    const map = /* @__PURE__ */ Object.create(null);
+    const list = str.split(",");
+    for (let i = 0; i < list.length; i++) {
+      map[list[i]] = true;
+    }
+    return expectsLowerCase ? (val) => !!map[val.toLocaleLowerCase()] : (val) => !!map[val];
+  }
+
   // packages/shared/src/index.ts
   var isObject = (val) => {
     return val !== null && typeof val === "object";
   };
+  var isString = (val) => typeof val === "string";
+  var isSymbol = (val) => typeof val == "symbol";
   var isFunction = (val) => typeof val === "function";
   var isArray = Array.isArray;
+  var def = (obj, key, value) => {
+    Object.defineProperty(obj, key, {
+      configurable: true,
+      enumerable: false,
+      value
+    });
+  };
+  var objectToString = Object.prototype.toString;
+  var toTypeString = (value) => objectToString.call(value);
+  var toRawType = (value) => {
+    return toTypeString(value).slice(8, -1);
+  };
+  var hasOwnProperty = Object.prototype.hasOwnProperty;
+  var hasOwn = (val, key) => hasOwnProperty.call(val, key);
+  var isIntegerKey = (key) => isString(key) && key !== "NaN" && key[0] !== "-" && "" + parseInt(key, 10) === key;
+  var hasChange = (newVal, oldVal) => !Object.is(newVal, oldVal);
+  var extend = Object.assign;
 
   // packages/reactivity/src/effect.ts
+  var targetMap = /* @__PURE__ */ new WeakMap();
   var activeEffect = void 0;
   function cleanUpEffect(effect3) {
     const { deps } = effect3;
@@ -85,21 +119,20 @@ var VueReactivity = (() => {
     runner.effect = _effect;
     return runner;
   }
-  var targetMap = /* @__PURE__ */ new WeakMap();
   function track(target, type, key) {
-    if (!activeEffect)
-      return;
-    let depsMap = targetMap.get(target);
-    if (!depsMap) {
-      depsMap = /* @__PURE__ */ new Map();
-      targetMap.set(target, depsMap);
+    if (activeEffect) {
+      let depsMap = targetMap.get(target);
+      if (!depsMap) {
+        depsMap = /* @__PURE__ */ new Map();
+        targetMap.set(target, depsMap);
+      }
+      let dep = depsMap.get(key);
+      if (!dep) {
+        dep = /* @__PURE__ */ new Set();
+        depsMap.set(key, dep);
+      }
+      trackEffects(dep);
     }
-    let dep = depsMap.get(key);
-    if (!dep) {
-      dep = /* @__PURE__ */ new Set();
-      depsMap.set(key, dep);
-    }
-    trackEffects(dep);
   }
   function trackEffects(dep) {
     if (!activeEffect)
@@ -109,14 +142,32 @@ var VueReactivity = (() => {
       activeEffect.deps.push(dep);
     }
   }
-  function trigger(target, type, key, value, oldValue) {
+  function trigger(target, type, key, newValue, oldValue) {
     const depsMap = targetMap.get(target);
     if (!depsMap)
       return;
-    let effects = depsMap.get(key);
-    if (effects) {
-      triggerEffects(effects);
+    let deps = [];
+    if (key === "length" && isArray(target)) {
+      depsMap.forEach((dep, key2) => {
+        if (key2 === "length" || key2 >= newValue) {
+          deps.push(dep);
+        }
+      });
+    } else {
+      deps.push(depsMap.get(key));
+      if (type === "add" /* ADD */) {
+        if (isArray(target) && isIntegerKey(key)) {
+          deps.push(depsMap.get("length"));
+        }
+      }
     }
+    const effects = [];
+    for (const dep of deps) {
+      if (dep) {
+        effects.push(...dep);
+      }
+    }
+    triggerEffects(effects);
   }
   function triggerEffects(effects) {
     effects = new Set(effects);
@@ -127,36 +178,172 @@ var VueReactivity = (() => {
     });
   }
 
+  // packages/reactivity/src/ref.ts
+  var RefImpl = class {
+    constructor(rawValue) {
+      this.rawValue = rawValue;
+      this.__v_isRef = true;
+      this.dep = /* @__PURE__ */ new Set();
+      this._value = toReactive(rawValue);
+    }
+    get value() {
+      trackEffects(this.dep);
+      return this._value;
+    }
+    set value(newValue) {
+      if (hasChange(newValue, this.rawValue)) {
+        this._value = toReactive(newValue);
+        this.rawValue = newValue;
+        triggerEffects(this.dep);
+      }
+    }
+  };
+  function ref(value) {
+    return new RefImpl(value);
+  }
+  var ObjectRefImpl = class {
+    constructor(object, key) {
+      this.object = object;
+      this.key = key;
+    }
+    get value() {
+      return this.object[this.key];
+    }
+    set value(newValue) {
+      this.object[this.key] = newValue;
+    }
+  };
+  function toRef(object, key) {
+    return new ObjectRefImpl(object, key);
+  }
+  function toRefs(object) {
+    const result = isArray(object) ? new Array(object.length) : {};
+    for (let key in object) {
+      result[key] = toRef(object, key);
+    }
+    return result;
+  }
+  function isRef(r) {
+    return !!(r && r.__v_isRef === true);
+  }
+  function proxyRefs(object) {
+    return new Proxy(object, {
+      get(target, key, receiver) {
+        let r = Reflect.get(target, key, receiver);
+        return r.__v_isRef ? r.value : r;
+      },
+      set(target, key, value, receiver) {
+        let oldValue = target[key];
+        if (oldValue.__v_isRef) {
+          oldValue.value = value;
+          return true;
+        } else {
+          return Reflect.set(target, key, value, receiver);
+        }
+      }
+    });
+  }
+
   // packages/reactivity/src/baseHandler.ts
+  var ITERATE = Symbol(true ? "iterate" : "");
+  var MAP_KEY_ITERATE_KEY = Symbol(true ? "Map key iterate" : "");
+  var isNonTrackableKeys = /* @__PURE__ */ makeMap(`__proto__,__v_isRef,__isVue`);
   var get = createGetter();
   var readonlyGet = createGetter(true);
-  function createGetter(isReadonly2 = false) {
+  var shallowGet = createGetter(false, true);
+  var builtInSymbols = new Set(
+    Object.getOwnPropertyNames(Symbol).filter((key) => key !== "arguments" && key !== "caller").map((Key) => Symbol[Key]).filter(isSymbol)
+  );
+  var arrayInstrumentations = createArrayInstrumentations();
+  function createArrayInstrumentations() {
+    const instrumentations = {};
+    ["includes", "indexof", "lastIndexOf"].forEach((key) => {
+      instrumentations[key] = function(...args) {
+        const arr = toRaw(this);
+        for (let i = 0, l = this.length; i < l; i++) {
+          track(arr, "get" /* GET */, i + "");
+        }
+        const res = arr[key](...args);
+        if (res === -1 || res === false) {
+          return arr[key](...args.map(toRaw));
+        } else {
+          return res;
+        }
+      };
+    });
+    return instrumentations;
+  }
+  function createGetter(isReadonly2 = false, isShallow2 = false) {
     return function get2(target, key, receiver) {
       if (key === "__v_isReactive" /* IS_REACTIVE */) {
         return !isReadonly2;
       } else if (key === "__v_isReadonly" /* IS_READONLY */) {
         return isReadonly2;
+      } else if (key === "__V_isShallow" /* IS_SHALLOW */) {
+        return isShallow2;
       } else if (key === "__v_raw" /* RAW */ && receiver === reactiveMap.get(target)) {
         return target;
       }
-      track(target, 0, key);
+      const targetIsArray = isArray(target);
+      if (!isReadonly2 && targetIsArray && hasOwn(arrayInstrumentations, key)) {
+        return Reflect.get(arrayInstrumentations, key, receiver);
+      }
       const res = Reflect.get(target, key, receiver);
+      if (isSymbol(key) ? builtInSymbols.has(key) : isNonTrackableKeys(key)) {
+        return res;
+      }
+      if (!isReadonly2) {
+        track(target, "get" /* GET */, key);
+      }
+      if (isShallow2) {
+        return res;
+      }
+      if (isRef(res)) {
+        return targetIsArray && isIntegerKey(key) ? res : res.value;
+      }
       if (isObject(res)) {
         return isReadonly2 ? readonly(res) : reactive(res);
       }
       return res;
     };
   }
+  function deleteProperty(target, key) {
+    const hadKey = hasOwn(target, key);
+    const oldValue = target[key];
+    const result = Reflect.deleteProperty(target, key);
+    if (result && hadKey)
+      trigger(target, "delete" /* DELETE */, key, void 0, oldValue);
+    return result;
+  }
+  function has(target, key) {
+    const result = Reflect.has(target, key);
+    if (!isSymbol(key) || !builtInSymbols.has(key)) {
+      track(target, "has" /* HAS */, key);
+    }
+    return result;
+  }
+  function ownKeys(target) {
+    track(target, "iterate" /* ITERATE */, isArray(target) ? "length" : ITERATE);
+    return Reflect.ownKeys(target);
+  }
   var mutableHandlers = {
     get,
     set(target, key, value, receiver) {
       let oldValue = target[key];
-      if (oldValue === value)
-        return false;
+      const hadKey = isArray(target) && isIntegerKey(key) ? Number(key) < target.length : hasOwn(target, key);
       let result = Reflect.set(target, key, value, receiver);
-      trigger(target, 0, key, value, oldValue);
+      if (target === toRaw(receiver)) {
+        if (!hadKey) {
+          trigger(target, "add" /* ADD */, key, value);
+        } else if (hasChange(value, oldValue)) {
+          trigger(target, "set" /* SET */, key, value, oldValue);
+        }
+      }
       return result;
-    }
+    },
+    deleteProperty,
+    has,
+    ownKeys
   };
   var readonlyHandlers = {
     get: readonlyGet,
@@ -169,8 +356,29 @@ var VueReactivity = (() => {
       return true;
     }
   };
+  var shallowReactiveHandlers = extend({}, mutableHandlers, {
+    get: shallowGet
+  });
 
   // packages/reactivity/src/reactive.ts
+  function targetTypeMap(rawType) {
+    switch (rawType) {
+      case "Object":
+      case "Array":
+        return 1 /* COMMON */;
+      case "Map":
+      case "Set":
+      case "WeakMap":
+      case "WeakSet":
+        return 2 /* COLLECTION */;
+      default:
+        return 0 /* INVALID */;
+    }
+  }
+  function getTargetType(value) {
+    return value["__v_skip" /* SKIP */] || !Object.isExtensible(value) ? 0 /* INVALID */ : targetTypeMap(toRawType(value));
+  }
+  var reactiveMap = /* @__PURE__ */ new WeakMap();
   function createReactiveObject(target, isReadonly2, baseHandlers) {
     if (!isObject(target))
       return;
@@ -181,16 +389,21 @@ var VueReactivity = (() => {
       return existingProxy;
     if (target["__v_isReactive" /* IS_REACTIVE */])
       return target;
+    const targetType = getTargetType(target);
+    if (targetType === 0 /* INVALID */)
+      return target;
     const proxy = new Proxy(target, baseHandlers);
     reactiveMap.set(target, proxy);
     return proxy;
   }
-  var reactiveMap = /* @__PURE__ */ new WeakMap();
   function isReactive(value) {
     return !!(value && value["__v_isReactive" /* IS_REACTIVE */]);
   }
   function isReadonly(value) {
     return !!(value && value["__v_isReadonly" /* IS_READONLY */]);
+  }
+  function isShallow(value) {
+    return !!(value && value["__V_isShallow" /* IS_SHALLOW */]);
   }
   function reactive(target) {
     if (isReadonly(target))
@@ -200,10 +413,17 @@ var VueReactivity = (() => {
   function readonly(target) {
     return createReactiveObject(target, true, readonlyHandlers);
   }
+  function shallowReactive(target) {
+    return createReactiveObject(target, false, shallowReactiveHandlers);
+  }
   var toReactive = (value) => isObject(value) ? reactive(value) : value;
   function toRaw(observed) {
     const raw = observed && observed["__v_raw" /* RAW */];
     return raw ? toRaw(raw) : observed;
+  }
+  function markRaw(value) {
+    def(value, "__v_skip" /* SKIP */, true);
+    return value;
   }
 
   // packages/reactivity/src/computed.ts
@@ -288,69 +508,6 @@ var VueReactivity = (() => {
     };
     const effect3 = new ReactiveEffect(getter, job);
     oldValue = effect3.run();
-  }
-
-  // packages/reactivity/src/ref.ts
-  var RefImpl = class {
-    constructor(rawValue) {
-      this.rawValue = rawValue;
-      this.__v_isRef = true;
-      this.dep = /* @__PURE__ */ new Set();
-      this._value = toReactive(rawValue);
-    }
-    get value() {
-      trackEffects(this.dep);
-      return this._value;
-    }
-    set value(newValue) {
-      if (newValue === this.rawValue)
-        return;
-      this._value = toReactive(newValue);
-      this.rawValue = newValue;
-      triggerEffects(this.dep);
-    }
-  };
-  function ref(value) {
-    return new RefImpl(value);
-  }
-  var ObjectRefImpl = class {
-    constructor(object, key) {
-      this.object = object;
-      this.key = key;
-    }
-    get value() {
-      return this.object[this.key];
-    }
-    set value(newValue) {
-      this.object[this.key] = newValue;
-    }
-  };
-  function toRef(object, key) {
-    return new ObjectRefImpl(object, key);
-  }
-  function toRefs(object) {
-    const result = isArray(object) ? new Array(object.length) : {};
-    for (let key in object) {
-      result[key] = toRef(object, key);
-    }
-    return result;
-  }
-  function proxyRefs(object) {
-    return new Proxy(object, {
-      get(target, key, receiver) {
-        let r = Reflect.get(target, key, receiver);
-        return r.__v_isRef ? r.value : r;
-      },
-      set(target, key, value, receiver) {
-        let oldValue = target[key];
-        if (oldValue.__v_isRef) {
-          oldValue.value = value;
-          return true;
-        } else {
-          return Reflect.set(target, key, value, receiver);
-        }
-      }
-    });
   }
   return __toCommonJS(src_exports);
 })();

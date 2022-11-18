@@ -9,14 +9,18 @@
     <script src="../dist/reactivity.global.js"></script>
   </head>
   <body>
+    <div id="app"></div>
     <script>
       // const { ref, effect, toRefs, reactive, proxyRefs } = Vue;
-      const { reactive, toRaw } = VueReactivity;
+      const { reactive, ref } = VueReactivity;
 
-      debugger;
-      const states = reactive({ name: "red", age: 20, friend: { name: "blue" } });
+      const obj = reactive({ a: ref(true) });
+      const arr = reactive([ref(false)]);
 
-      console.log(toRaw(states));
+      console.log(obj.a);
+      // 返回是一个ref实例, 用户在数组里面就是需要一个这样的元素, 自己来.value取出
+      console.log(arr[0]);
+      console.log(arr[0].value);
     </script>
   </body>
 </html>

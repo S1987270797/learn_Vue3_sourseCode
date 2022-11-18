@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let { createRenderer, h, render, Text } = VueRuntimeDOM;
+
+      // 自己创建的render函数
+      // renderer.render(h("h1", { style: { color: "red" } }, "hello"), app);
+      // renderer.render(h( 'div', 'hello' ), app);
+      // renderer.render(h('div', { id: 'foo' }), app);
+
+      // vue自带的render函数
+      // render(h("div", { id: "foo" }), app);
+      // debugger;
+      // render(h(Text, "hello"), app);
+      // render(h("div", { class: "container", style: { color: "red" } }, "hello", "world"), app);
+      render(
+        h(
+          "button",
+          {
+            class: "btn",
+            style: { color: "red" },
+            onClick: e => {
+              console.log("hello button");
+              e.target.style.color = "blue";
+            },
+            onMouseover: () => {
+              console.log("mouseover");
+            },
+          },
+          "按钮"
+        ),
+        app
+      );
+
+      // setTimeout(() => {
+      //   render(null, app);
+      // }, 1000);
+    </script>
+  </body>
+</html>

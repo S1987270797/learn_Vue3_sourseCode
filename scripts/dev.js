@@ -4,6 +4,7 @@ const { resolve } = require("path");
 const args = require("minimist")(process.argv.slice(2));
 const { build } = require("esbuild");
 
+console.log(args);
 // 需要打包的模块
 const target = args._[0] || "reactivity";
 // 打包的代码运行在什么环境

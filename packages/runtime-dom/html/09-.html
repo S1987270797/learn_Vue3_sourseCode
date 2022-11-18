@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let { h, render, Text, Fragment } = VueRuntimeDOM;
+
+      const MyComponent = {
+        props: {
+          address: String,
+        },
+        render() {
+          return h(Text, this.address);
+        },
+      };
+
+      const VueComponent = {
+        data() {
+          return { flag: true };
+        },
+        // 执行组件的render函数必定是已经有activeEffect。render函数是经过effect.run()执行的。
+        render() {
+          // 这是大组件，组件使用了MyComponent组件并传递了数据。
+          return h(Fragment, [
+            h("button", { onClick: () => (this.flag = !this.flag) }, "切换渲染"),
+            // 使用组件，传入address。
+            h(MyComponent, { address: this.flag ? "地球" : "月球" }),
+          ]);
+        },
+      };
+      debugger
+      render(h(VueComponent), app);
+      
+      /* // 执行顺序是 
+      
+      render(vnode, app) -> 
+      path(null, vnode, app) -> processComponent(null, vnode, app) -> 
+      mountComponent(vnode, app) -> 创建组件的实例,给实例赋值,setupRenderEffect(instance, app) -> 
+      将组件的render函数变为effect, new ReactiveEffect(render, schedule) -> 执行effect.run() -> 
+      执行组件的render函数 -> h(Fragment, [vnode,vnode]) -> 得到vnode(vnode.type = Fragment) -> 
+      path(null, vnode, app) -> processFragment(null, vnode, app) -> mountChildren -> path(null, vnode, app)渲染button ->
+      收集依赖,将this.flag与当前render函数绑定. -> 
+      path(null, vnode, app)渲染组件MyComponent -> processComponent(null, vnode, app) -> ...走到组件的effect.run执行结束 -> 
+      instance.subtree = vnode(VueComponent) -> 结束
+
+      点击按钮
+      this.flag = false -> 执行包裹VueComponent的render的effect函数 -> 执行render函数,得到新的vnode -> 
+      patch(instance.subTree, subTree, app) -> processFragment(vnode, vnode, app) -> patchChildren(vnode, vnode, app)
+
+        */
+    </script>
+  </body>
+</html>

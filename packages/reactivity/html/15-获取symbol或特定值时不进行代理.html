@@ -9,14 +9,18 @@
     <script src="../dist/reactivity.global.js"></script>
   </head>
   <body>
+    <div id="app"></div>
     <script>
       // const { ref, effect, toRefs, reactive, proxyRefs } = Vue;
-      const { reactive, toRaw } = VueReactivity;
+      const { reactive, effect, toRaw, markRaw } = VueReactivity;
 
-      debugger;
-      const states = reactive({ name: "red", age: 20, friend: { name: "blue" } });
+      const states = reactive({ name: "red", age: 20 });
 
-      console.log(toRaw(states));
+      //  内置symbol的处理 __proto__这些不要处理
+      // debugger;
+      console.log(states[Symbol.iterator]);
+      console.log(states.__proto__);
+      console.log(states.toString());
     </script>
   </body>
 </html>

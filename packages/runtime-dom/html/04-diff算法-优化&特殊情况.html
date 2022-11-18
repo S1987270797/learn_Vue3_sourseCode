@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let { h, render, Text } = VueRuntimeDOM;
+
+      render(
+        h(
+          "h1",
+          { style: { color: "red" } },
+          // 儿子
+          [
+            h("span", { key: "a" }, "a"),
+            h("span", { key: "b" }, "b"),
+            h("span", { key: "c" }, "c"),
+            h("span", { key: "d" }, "d"),
+            h("span", { key: "e" }, "e"),
+          ]
+        ),
+        app
+      );
+
+      setTimeout(() => {
+        // sync from start 往后面添加
+        /* render(
+          h(
+            "h1",
+            { style: { color: "red", fontSize: "18px" } },
+            // 儿子
+            [
+              h("span", { key: "a" }, "a"),
+              h("span", { key: "b" }, "b"),
+              h("span", { key: "c" }, "c"),
+              h("span", { key: "d" }, "d"),
+              h("span", { key: "e" }, "e"),
+              h("span", { key: "f" }, "f"),
+            ]
+          ),
+          app
+        ); */
+
+        // sync from end 往前面添加
+        /* render(
+          h(
+            "h1",
+            { style: { color: "red", fontSize: "18px" } },
+            // 儿子
+            h("span", { key: "d" }, "d"),
+            h("span", { key: "e" }, "e"),
+            h("span", { key: "f" }, "f"),
+            h("span", { key: "a" }, "a"),
+            h("span", { key: "b" }, "b"),
+            h("span", { key: "c" }, "c")
+          ),
+          app
+        ); */
+
+        // 删除后面的元素
+        /* render(
+          h(
+            "h1",
+            { style: { color: "red", fontSize: "18px" } },
+            // 儿子
+            h("span", { key: "a" }, "a"),
+            h("span", { key: "b" }, "b"),
+            h("span", { key: "c" }, "c")
+          ),
+          app
+        ); */
+
+        // 删除前面的元素
+        render(
+          h(
+            "h1",
+            { style: { color: "red", fontSize: "18px" } },
+            // 儿子
+            h("span", { key: "c" }, "c"),
+            h("span", { key: "d" }, "d"),
+            h("span", { key: "e" }, "e")
+          ),
+          app
+        );
+      }, 1000);
+    </script>
+  </body>
+</html>

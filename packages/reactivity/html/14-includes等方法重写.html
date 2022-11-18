@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/vue/dist/vue.global.js"></script> -->
+    <script src="../dist/reactivity.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      // const { ref, effect, toRefs, reactive, proxyRefs } = Vue;
+      const { reactive, effect, toRaw, markRaw } = VueReactivity;
+
+      const data = { name: "red", age: 18 };
+      const arr = reactive([data]);
+      console.log(arr);
+      // 一个是响应式对象，一个是一个普通对象。
+      console.log(arr[0] === data);
+      // 调用includes方法时，这个数组应该有这个对象。需要重写includes等数组方法。
+      debugger
+      console.log(arr.includes(data));
+      // 这个原来就会是true
+      console.log(arr.includes(arr[0]));
+    </script>
+  </body>
+</html>

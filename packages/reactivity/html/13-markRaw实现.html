@@ -9,14 +9,23 @@
     <script src="../dist/reactivity.global.js"></script>
   </head>
   <body>
+    <div id="app"></div>
     <script>
       // const { ref, effect, toRefs, reactive, proxyRefs } = Vue;
-      const { reactive, toRaw } = VueReactivity;
+      const { reactive, effect, toRaw, markRaw } = VueReactivity;
 
-      debugger;
-      const states = reactive({ name: "red", age: 20, friend: { name: "blue" } });
+      const blue = { name: "blue", age: 21 };
+      const red = reactive({ name: "red", age: 20, friend: markRaw(blue) });
 
-      console.log(toRaw(states));
+      effect(() => {
+        app.innerHTML = `${red.age} ${red.friend.age}`;
+      });
+
+      setTimeout(() => {
+        debugger;
+        red.age = 100;
+        red.friend.age = 101;
+      }, 1000);
     </script>
   </body>
 </html>

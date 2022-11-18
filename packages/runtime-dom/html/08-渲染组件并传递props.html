@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let { h, render } = VueRuntimeDOM;
+      // debugger // 调试记得按F9
+      // webComponent
+      // 组件的三大特性，1.属性，属性变化组件如何更新。 2.插槽。 3.事件
+      const VueComponent = {
+        props: {
+          address: String, // 校验属性类型
+          score: Object,
+        },
+        render() {
+          // props的数据是shallowReactive,单项数据流.
+          setTimeout(() => {
+            console.log("修改math");
+            this.score.math = "二百";
+
+            console.log("修改score");
+            this.score = { math: "三百" };
+          }, 1000);
+
+          console.log(this.$attrs.a);
+
+          return h("p", [this.address, this.$attrs.a, this.$attrs.b, this.score.math]);
+        },
+      };
+      // 渲染一个组件，再给组件传入props。（组件有接收的值叫做props，没有接收的叫attrs）
+      // 执行render(vnode, app) -> patch(null, vnode, app)判断 渲染组件 -> processComponent(null, vnode, app) -> mountComponent(vnode, app)生成组件实例instance -> update()执行组件的render函数绑定this -> 渲染出真实dom
+      render(h(VueComponent, { address: "余芷慧", a: 1, b: 2, score: { math: "一百" } }), app);
+    </script>
+  </body>
+</html>
