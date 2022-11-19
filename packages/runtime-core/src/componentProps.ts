@@ -41,20 +41,19 @@ export function hasPropsChange(prevProps: Data = {}, nextProps: Data = {}) {
   return false;
 }
 
-export function updateProps(instance: ComponentInternalInstance, prevProps: Data, nextProps: Data) {
-  // 父亲的props有变化
-  if (hasPropsChange(prevProps, nextProps)) {
-    // 将新props的值全部赋给instance.props
-    // 这里就是改变组件props的地方。给组件传递新的props将在这里被接收，触发set
-    for (const key in nextProps) {
-      // 改变组件的props就会触发依赖这个props的effect
-      instance.props[key] = nextProps[key];
-    }
-    // 从instance.props中删除新props没有的key
-    for (const key in instance.props) {
-      if (!hasOwn(nextProps, key)) {
-        delete instance.props[key];
-      }
+export function updateProps(prevProps: Data, nextProps: Data) {
+  // instance的props是响应式的(shallow)，而且可以改变的，属性的更新会导致页面重新渲染
+
+  // 将新props的值全部赋给prevProps
+  // 这里就是改变组件props的地方。给组件传递新的props将在这里被接收，触发set
+  for (const key in nextProps) {
+    // 改变组件的props就会触发依赖这个props的effect
+    prevProps[key] = nextProps[key];
+  }
+  // 从prevProps中删除新props没有的key
+  for (const key in prevProps) {
+    if (!hasOwn(nextProps, key)) {
+      delete prevProps[key];
     }
   }
 }

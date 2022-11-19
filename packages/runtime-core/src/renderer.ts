@@ -4,7 +4,7 @@ import { createVNode, Fragment, isSameVNodeType, isVNode, Text, VNode } from "./
 import { getSequence } from "./sequence";
 import { reactive, ReactiveEffect } from "@vue/reactivity";
 import { queueJob } from "./scheduler";
-import { initProps, updateProps } from "./componentProps";
+import { hasPropsChange, initProps, updateProps } from "./componentProps";
 import { createComponentInstance, ComponentInternalInstance, setupComponent } from "./component";
 
 /* 创建一个render（渲染器），允许你使用不同平台的api */
@@ -405,6 +405,14 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
     setupRenderEffect(instance, container, anchor);
   };
 
+  const updateComponentPreRender = (instance: ComponentInternalInstance, next: VNode) => {
+    instance.next = null; // next清空
+    instance.vnode = next; // 更新组件最新的vnode
+
+    // 更新组件的props
+    updateProps(instance.props, next.props);
+  };
+
   const setupRenderEffect = (instance: ComponentInternalInstance, container: any, anchor: any) => {
     const { render } = instance;
 
@@ -424,6 +432,14 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
       }
       // 组件内部更新
       else {
+        //
+        let { next } = instance;
+
+        if (next) {
+          // 更新前 拿到父亲最新传过来的props进行更新
+          updateComponentPreRender(instance, next);
+        }
+
         // 再次执行render得到新的vnode， subTree就是组件的内容
         const subTree = render.call(instance.proxy);
         // 对比patch两次的内容，会重新挂载
@@ -443,18 +459,28 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
     update();
   };
 
-  const updateComponent = (n1: VNode, n2: VNode) => {
-    // instance的props是响应式的(shallow)，而且可以改变的，属性的更新会导致页面重新渲染
-    // 这里直接将component替换，利用的是引用替换
-    const instance = (n2.component = n1.component);
+  const shouldUpdateComponent = (n1: VNode, n2: VNode) => {
     // 改变props就会触发组件更新
     // 这里是将props解构出来了
-    const { props: prevProps } = n1;
-    const { props: nextProps } = n2;
+    const { props: prevProps, children: prevChildren } = n1;
+    const { props: nextProps, children: nextChildren } = n2;
 
-    //
-    // 进入这个函数instance是一定有的
-    updateProps(instance as ComponentInternalInstance, prevProps, nextProps);
+    if (prevProps === nextProps) return false;
+    if (prevChildren || nextChildren) return true;
+    return hasPropsChange(prevProps, nextProps);
+  };
+
+  const updateComponent = (n1: VNode, n2: VNode) => {
+    // 这里直接将component替换，换成新的instance. 有利用引用替换
+    const instance = (n2.component = n1.component);
+
+    // 更新组件
+    // 比较新旧vnode的props，即查看父亲是否给这个组件传递了新的props
+    if (shouldUpdateComponent(n1, n2)) {
+      // 赋值将新Vnode赋值给next
+      instance!.next = n2;
+      instance?.update();
+    }
   };
 
   const processComponent = (n1: VNode | null, n2: VNode, container: any, anchor: null) => {

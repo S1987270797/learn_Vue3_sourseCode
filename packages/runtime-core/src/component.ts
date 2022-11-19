@@ -11,12 +11,13 @@ export interface ComponentInternalInstance {
   vnode: VNode;
   subTree: VNode | null;
   isMounted: boolean;
-  update: any;
-  propsOptions: any;
-  props: Data;
-  attrs: Data;
-  proxy: any;
-  render: any;
+  update: any; // 组件更新执行的函数
+  propsOptions: any; // 组件接收的props
+  props: Data; // 组件的props
+  attrs: Data; // 组件的attrs
+  proxy: any; // 组件的代理对象（在组件中使用this）
+  render: any; // 组件的render函数（template渲染部分）
+  next?: VNode | null;
 }
 
 export function createComponentInstance(vnode: VNode) {
@@ -91,7 +92,7 @@ export function setupComponent(instance: ComponentInternalInstance) {
   // 这个函数区别出props与attrs，并且将props进行shallowReactive
   initProps(instance, props);
 
-  // 将组件的instance实例代理一层。即用户在组件使用this
+  // 3.将组件的instance实例代理一层。即用户在组件使用this
   instance.proxy = new Proxy(instance, publicInstanceProxy);
 
   // 给实例加上render
