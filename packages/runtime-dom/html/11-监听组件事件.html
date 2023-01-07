@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <!-- <script src="/node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let { createRenderer, h, render, Text, Fragment, ref } = VueRuntimeDOM;
+
+      const VueComponent = {
+        setup(props, { emit }) { 
+          return () => {
+            // 组件发射一个事件
+            return h("p", { onClick: () => emit("xxx", "ookk") }, "hello");
+          };
+        },
+      };
+
+      // 监听组件的事件
+      render(h(VueComponent, { onXxx: value => alert(value) }), app);
+    </script>
+  </body>
+</html>

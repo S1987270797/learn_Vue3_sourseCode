@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <!-- <script src="/node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let {
+        reactive,
+        toRefs,
+        h,
+        render,
+        onBeforeMount,
+        onMounted,
+        onUpdated,
+        onBeforeUpdate,
+        computed,
+        getCurrentInstance,
+      } = VueRuntimeDOM;
+
+      const useCounter = () => {
+        onBeforeMount(() => {
+          console.log("onBeforeMount", getCurrentInstance());
+        });
+        onMounted(() => {
+          console.log("onMounted", getCurrentInstance());
+        });
+        onBeforeUpdate(() => {
+          console.log("onBeforeUpdate", getCurrentInstance());
+        });
+        onUpdated(() => {
+          console.log("onUpdated", getCurrentInstance());
+        });
+
+        const state = reactive({ count: 1 });
+
+        const doubleCount = computed(() => state.count * 2);
+
+        const handleClick = () => {
+          state.count++;
+        };
+
+        return { state, doubleCount, handleClick };
+      };
+
+      const VueComponent = {
+        setup() {
+          const { state, doubleCount, handleClick } = useCounter();
+
+          return {
+            ...toRefs(state),
+            doubleCount,
+            handleClick,
+          };
+        },
+        render() {
+          console.log("render");
+          return h("p", { onClick: this.handleClick }, this.count.value, this.doubleCount.value);
+        },
+      };
+
+      debugger
+      render(h(VueComponent), app);
+    </script>
+  </body>
+</html>

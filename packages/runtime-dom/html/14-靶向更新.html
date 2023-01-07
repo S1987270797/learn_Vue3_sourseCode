@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="/node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+    <script>
+      let {
+        createRenderer,
+        h,
+        render,
+        Text,
+        ref,
+        openBlock: _openBlock,
+        createElementBlock: _createElementBlock,
+        createElementVNode: _createElementVNode,
+        toDisplayString: _toDisplayString,
+      } = VueRuntimeDOM;
+
+      const VueComponent = {
+        setup() {
+          const name = ref("red");
+          return {
+            name,
+          };
+        },
+
+        render(_ctx) {
+          console.log(this);
+          console.log(_ctx);
+
+          let vnode =
+            (_openBlock(),
+            _createElementBlock("div", null, [
+              _createElementVNode("h1", null, "Hello world"),
+              _createElementVNode("span", null, _toDisplayString(this.name), 1),
+            ]));
+
+          console.log(vnode);
+          return vnode;
+        },
+      };
+
+      render(h(VueComponent), app);
+    </script>
+  </body>
+</html>

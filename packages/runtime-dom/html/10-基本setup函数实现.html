@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <!-- <script src="/node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let { createRenderer, h, render, Text, Fragment, ref } = VueRuntimeDOM;
+      const VueComponent = {
+        props: {
+          address: String,
+        },
+        setup(props) {
+          const name = ref("red");
+          const age = ref("13");
+
+          setTimeout(() => {
+            age.value = 20;
+          }, 1000);
+
+          // 可以返回对象也可以返回一个函数
+          return {
+            name,
+            age,
+          };
+          // 返回函数需返回一个vnode, 代替render函数.
+          // return () => {
+          //   return h(Fragment, [name.value, age.value, props.address]);
+          // };
+        },
+        render() {
+          return h(Fragment, [this.name, this.age, this.address]);
+        },
+      };
+      render(h(VueComponent, { address: "地球" }), app);
+    </script>
+  </body>
+</html>

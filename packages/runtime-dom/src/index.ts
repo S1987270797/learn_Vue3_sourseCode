@@ -3,6 +3,7 @@ import { NodeOps, nodeOps } from "./nodeOps";
 import { patchProps } from "./patchProp";
 
 export * from "@vue/runtime-core";
+export * from "@vue/reactivity";
 
 export interface RendererOptions extends NodeOps {
   patchProps(el: any, key: any, prevValue: any, nextValue: any): void;

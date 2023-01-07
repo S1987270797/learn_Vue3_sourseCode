@@ -41,3 +41,10 @@ export const isIntegerKey = (key: unknown) =>
 export const hasChange = (newVal: any, oldVal: any) => !Object.is(newVal, oldVal);
 
 export const extend = Object.assign;
+
+// invoke一个数组的函数
+export const invokeArrayFns = (fns: Function[], arg?: any) => {
+  for (let i = 0; i < fns.length; i++) {
+    fns[i](arg);
+  }
+};

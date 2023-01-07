@@ -1,4 +1,4 @@
-import { hasOwn, isString, ShapeFlags } from "@vue/shared";
+import { hasOwn, invokeArrayFns, isString, ShapeFlags } from "@vue/shared";
 import { RendererOptions } from "@vue/runtime-dom";
 import { createVNode, Fragment, isSameVNodeType, isVNode, Text, VNode } from "./vnode";
 import { getSequence } from "./sequence";
@@ -6,6 +6,7 @@ import { reactive, ReactiveEffect } from "@vue/reactivity";
 import { queueJob } from "./scheduler";
 import { hasPropsChange, initProps, updateProps } from "./componentProps";
 import { createComponentInstance, ComponentInternalInstance, setupComponent } from "./component";
+import { LifecycleHooks } from "./apiLifeCycle";
 
 /* 创建一个render（渲染器），允许你使用不同平台的api */
 export interface Renderer {
@@ -139,7 +140,10 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
     while (i <= e1 && i <= e2) {
       // 从头取出两个vnode
       const n1 = c1[i];
-      const n2 = c2[i];
+      // const n2 = c2[i];
+      // 有可能Fragment的children是原生数据类型如Number, String等.我们的patch是必须传入vnode的. 将新的Fragment的children全部变为vnode. 具体实例在 packages\runtime-dom\html\10-setup函数实现.html. 可覆盖这里的代码
+      const n2 = normalize(c2, i);
+
       // 两个元素相同比较他们的儿子
       if (isSameVNodeType(n1, n2)) {
         patch(n1, n2, el);
@@ -343,7 +347,7 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
     else {
       // 2.1 旧儿子也是数组
       if (oldShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-        // diff算法
+        // diff算法. path(Fragment必走这个方法.
         patchKeyedChildren(oldChildren, newChildren, el);
       }
       // 2.2 旧儿子是文本
@@ -398,7 +402,8 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
     // 1). 根据vnode，创建一个组件实例instance
     const instance = (vnode.component = createComponentInstance(vnode));
 
-    // 2). 给实例赋值
+    // 2). 给实例赋值。
+    // 收集生命周期函数，绑定各自生命周期函数的组件实例。
     setupComponent(instance);
 
     // 3). 挂载组件
@@ -419,6 +424,12 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
     const componentUpdateFn = () => {
       // 还没有挂载，需要初始化
       if (!instance.isMounted) {
+        // 0.钩子函数beforeMounted
+        const bm = instance[LifecycleHooks.BEFORE_MOUNT];
+        if (bm) {
+          invokeArrayFns(bm as any);
+        }
+
         // 1。拿到vnode
         // 执行render函数得到的是vnode。得到的是组件的子元素。传入this
         const subTree = render.call(instance.proxy);
@@ -429,14 +440,33 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
         // 放在组件的实例上，这个组件的子元素
         instance.subTree = subTree;
         instance.isMounted = true;
+
+        // 声明周期mounted
+        const m = instance[LifecycleHooks.MOUNTED];
+        if (m) {
+          invokeArrayFns(m as any);
+        }
       }
       // 组件内部更新
       else {
-        //
-        let { next } = instance;
+        // 0.声明周期函数beforeUpdate
+        const bu = instance[LifecycleHooks.BEFORE_UPDATE];
+        if (bu) {
+          invokeArrayFns(bu as any);
+        }
 
+        // 有next代表这个组件的props有更新。父亲传给自己的props有变化。要重新更新属于我这个组件的元素。
+        // 没有next代表没有经过updateComponent函数。仅仅是被响应式触发。
+        // next会在updateComponent内被赋值，在updateComponentPreRender中被清除。
+        let { next } = instance;
         if (next) {
+          // processComponent -> updateComponent -> instance.update()到达本函数
           // 更新前 拿到父亲最新传过来的props进行更新
+          // 这里有一个细节：
+          // 正常：在updateProps函数中会修改组件的props，然后会触发set，执行组件的render()函数
+          // 在进来这个函数之前, 即在updateComponent中会调用instance.update()进入这个函数. 执行update()就是执行ReactiveEffect的run函数,run函数会清除依赖这个effect的函数,也就将组件的render函数清除了.
+          // 这里updateComponentPreRender -> updateProps 还会触发依赖,可是依赖已经清除了, 所有这个props更新不会再执行这个ReactiveEffect.
+          // 但是数值已经被修改了,再次执行组件的render函数会获得新的vnode与重新收集依赖.
           updateComponentPreRender(instance, next);
         }
 
@@ -446,6 +476,12 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
         patch(instance.subTree, subTree, container, anchor);
         // 储存起来
         instance.subTree = subTree;
+
+        // 生命周期函数updated
+        const u = instance[LifecycleHooks.UPDATED];
+        if (u) {
+          invokeArrayFns(u as any);
+        }
       }
     };
     // 为了区分是初次挂载组件，还是更新组件内容。将componentUpdateFn作为ReactiveEffect第一个参数，本质是执行组件的render函数，相当于给effect函数传入的函数，
@@ -461,11 +497,13 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
 
   const shouldUpdateComponent = (n1: VNode, n2: VNode) => {
     // 改变props就会触发组件更新
-    // 这里是将props解构出来了
+    // 这里是将props解构出来了. children是插槽.
     const { props: prevProps, children: prevChildren } = n1;
     const { props: nextProps, children: nextChildren } = n2;
 
+    // 相等没变化，不用更新组件
     if (prevProps === nextProps) return false;
+    // 两个对象不相等并且任何一方不为空
     if (prevChildren || nextChildren) return true;
     return hasPropsChange(prevProps, nextProps);
   };
@@ -477,7 +515,7 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
     // 更新组件
     // 比较新旧vnode的props，即查看父亲是否给这个组件传递了新的props
     if (shouldUpdateComponent(n1, n2)) {
-      // 赋值将新Vnode赋值给next
+      // 赋值将新Vnode赋值给next, 在instance.update会使用到instance.next.
       instance!.next = n2;
       instance?.update();
     }

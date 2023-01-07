@@ -1,10 +1,16 @@
 /* 渲染组件的操作 */
-import { reactive } from "@vue/reactivity";
-import { hasOwn, isFunction } from "@vue/shared";
+import { proxyRefs, reactive } from "@vue/reactivity";
+import { hasOwn, isFunction, isObject, ShapeFlags } from "@vue/shared";
 import { initProps } from "./componentProps";
 import { VNode } from "./vnode";
+import { LifecycleHooks } from "./apiLifeCycle";
 
 export type Data = Record<string, unknown>;
+
+// 记录当前活跃的instance
+export let currentInstance: ComponentInternalInstance | null;
+export const setCurrentInstance = (instance: ComponentInternalInstance | null) => (currentInstance = instance);
+export const getCurrentInstance = () => currentInstance;
 
 export interface ComponentInternalInstance {
   data: Data | null;
@@ -17,7 +23,14 @@ export interface ComponentInternalInstance {
   attrs: Data; // 组件的attrs
   proxy: any; // 组件的代理对象（在组件中使用this）
   render: any; // 组件的render函数（template渲染部分）
-  next?: VNode | null;
+  next?: VNode | null; // 组件新的vnode
+  setupState?: Data; // setup函数return的对象
+  slots?: {}; // 插槽相关内容
+  // 声明周期函数们
+  [LifecycleHooks.BEFORE_MOUNT]?: Function[];
+  [LifecycleHooks.MOUNTED]?: Function[];
+  [LifecycleHooks.BEFORE_UPDATE]?: Function[];
+  [LifecycleHooks.UPDATED]?: Function[];
 }
 
 export function createComponentInstance(vnode: VNode) {
@@ -40,15 +53,19 @@ export function createComponentInstance(vnode: VNode) {
 
 const publicPropertyMap: any = {
   $attrs: (i: any) => i.attrs,
+  $slots: (i: any) => i.slots,
 };
 
+// instance的ProxyHandler
 const publicInstanceProxy: ProxyHandler<any> = {
   get(target, key) {
-    const { data, props } = target;
+    const { data, props, setupState } = target;
 
-    // 只获取state与props的值
+    // 给组件所有数据设置一个访问顺序. data -> setupState -> props
     if (data && hasOwn(data, key)) {
       return data[key];
+    } else if (setupState && hasOwn(setupState, key)) {
+      return setupState[key];
     } else if (props && hasOwn(props, key)) {
       return props[key];
     }
@@ -57,29 +74,38 @@ const publicInstanceProxy: ProxyHandler<any> = {
     let getter = publicPropertyMap[key];
     if (getter) return getter(target);
   },
+  //
   set(target, key, value) {
-    const { data, props } = target;
+    const { data, props, setupState } = target;
 
     // 只修改state的值
     if (data && hasOwn(data, key)) {
       data[key] = value;
-      return true;
+    } else if (hasOwn(setupState, key)) {
+      setupState[key] = value;
     } else if (props && hasOwn(props, key)) {
       console.warn("attempting to mutate prop " + key);
+      return false;
     }
-    return false;
+    return true;
   },
 };
 
+function initSlots(instance: ComponentInternalInstance, children: {}) {
+  // 有插槽的组件
+  if (instance.vnode.shapeFlag & ShapeFlags.SLOTS_CHILDREN) {
+    instance.slots = children;
+  }
+}
+
 export function setupComponent(instance: ComponentInternalInstance) {
   // vnode.props是组件使用者传给这个组件的属性
+  let { props, type, children } = instance.vnode;
   // vnode.type.props是组件内部定义的props
-  let { props, type } = instance.vnode;
+  let { data, setup, render } = type;
 
   // 1.处理data
   // 将data绑定this
-  let data = type.data;
-
   if (data) {
     // 组件的data只能是函数.
     if (!isFunction(data)) return console.warn("data option must be a function");
@@ -87,14 +113,50 @@ export function setupComponent(instance: ComponentInternalInstance) {
     instance.data = reactive(data.call(instance.proxy));
   }
 
-  // 2.处理props。
+  // 2.处理setup
+  if (setup) {
+    const setupContext = {
+      // 组件发送事件的函数
+      emit: (event: String, ...args: any[]) => {
+        const eventName = `on${event[0].toUpperCase() + event.slice(1)}`; // onClick
+        // 找到父亲的回调函数. <son @Xxx="fn"></son>
+        const handler = instance.vnode.props[eventName];
+        handler && handler(...args);
+      },
+      attrs: instance.attrs,
+      slots: instance.slots,
+    };
+
+    // 执行setup函数前设置一下当前活跃的实例
+    setCurrentInstance(instance);
+    // 执行setup函数,传入props, context.
+    const setupResult = setup(instance.props, setupContext);
+    setCurrentInstance(null);
+
+    // setup返回的是对象, 放在setupState里面. (与vue2的data兼容)
+    if (isObject(setupResult)) {
+      // 将ref转为reactive
+      instance.setupState = proxyRefs(setupResult);
+    }
+    // 是函数, 作为render函数
+    else if (isFunction(setupResult)) {
+      instance.render = setupResult;
+    }
+  }
+
+  // 如果在setup中没有设置,给实例加上render.
+  if (!instance.render) {
+    instance.render = render;
+  }
+
+  // 3.处理props。
   // 分别传入的是   组件里定义的props  父亲传给这个组件的props。
   // 这个函数区别出props与attrs，并且将props进行shallowReactive
   initProps(instance, props);
 
-  // 3.将组件的instance实例代理一层。即用户在组件使用this
-  instance.proxy = new Proxy(instance, publicInstanceProxy);
+  // 4.处理slots
+  initSlots(instance, children);
 
-  // 给实例加上render
-  instance.render = type.render;
+  // 将组件的instance实例代理一层。即用户在组件使用this
+  instance.proxy = new Proxy(instance, publicInstanceProxy);
 }

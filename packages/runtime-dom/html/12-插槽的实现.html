@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <!-- <script src="../../../node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <!-- <script src="/node_modules/.pnpm/@vue+runtime-dom@3.2.37/node_modules/@vue/runtime-dom/dist/runtime-dom.global.js"></script> -->
+    <script src="../dist/runtime-dom.global.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+
+    <script>
+      let { createRenderer, h, render, Text, Fragment, ref, onBeforeMount, getCurrentInstance } = VueRuntimeDOM;
+
+      const MyComponent = {
+        setup() {
+          onBeforeMount(() => {
+            console.log("onBeforeMount", getCurrentInstance());
+          });
+        },
+        render() {
+          // 使用插槽
+          return h(Fragment, [
+            h("i", "你好是我component"),
+            h("div", this.$slots.header()),
+            h("div", this.$slots.main()),
+            h("div", this.$slots.footer()),
+          ]);
+        },
+      };
+
+      const VueComponent = {
+        setup() {
+          onBeforeMount(() => {
+            console.log("onBeforeMount", getCurrentInstance());
+          });
+        },
+        render() {
+          // 渲染组件, children传的是一个对象,就代表给组件传递的是插槽
+          // 即给组件插入插槽, 插槽可以在组件内部使用.this.$slots.插槽名字
+          return h(MyComponent, null, {
+            header: () => h("p", "header"),
+            main: () => h("h1", "main"),
+            footer: () => h("p", "footer"),
+          });
+        },
+      };
+
+      debugger;
+      render(h(VueComponent), app);
+    </script>
+  </body>
+</html>
