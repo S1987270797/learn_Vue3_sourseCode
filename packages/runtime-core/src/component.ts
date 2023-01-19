@@ -127,7 +127,11 @@ export function setupComponent(instance: ComponentInternalInstance) {
       slots: instance.slots,
     };
 
-    // 执行setup函数前设置一下当前活跃的实例
+    // 执行setup函数前设置一下当前活跃的实例。
+    /* 目的
+      1.为了保证每个setup函数获取到正确的对应的this
+      2.为了保证每个setup中的生命周期函数获取到对应的实例
+     */
     setCurrentInstance(instance);
     // 执行setup函数,传入props, context.
     const setupResult = setup(instance.props, setupContext);
@@ -144,6 +148,7 @@ export function setupComponent(instance: ComponentInternalInstance) {
     }
   }
 
+  // 如果setup函数返回的是一个函数，将有限使用setup函数返回的函数作为render函数。
   // 如果在setup中没有设置,给实例加上render.
   if (!instance.render) {
     instance.render = render;

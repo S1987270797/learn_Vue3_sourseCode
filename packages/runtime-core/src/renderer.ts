@@ -7,6 +7,7 @@ import { queueJob } from "./scheduler";
 import { hasPropsChange, initProps, updateProps } from "./componentProps";
 import { createComponentInstance, ComponentInternalInstance, setupComponent } from "./component";
 import { LifecycleHooks } from "./apiLifeCycle";
+import { PatchFlags } from "packages/shared/src/patchFlags";
 
 /* 创建一个render（渲染器），允许你使用不同平台的api */
 export interface Renderer {
@@ -360,6 +361,14 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
     }
   };
 
+  // 靶向更新，只比动态节点
+  const patchBlockChildren = (n1: VNode, n2: VNode) => {
+    for (let i = 0; i < n2.dynamicChildren.length; i++) {
+      // 之前是树的比较，现在是数组的比较. 比较的是新旧元素不同的部分，dynamicChildren
+      patchElement(n1.dynamicChildren[i], n2.dynamicChildren[i]);
+    }
+  };
+
   // 比较补丁两个元素
   const patchElement = (n1: VNode, n2: VNode) => {
     // type相同复用元素
@@ -367,10 +376,34 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
     let oldProps = n1.props || {};
     let newProps = n2.props || {};
 
-    // 先patchProps
-    patchProps(oldProps, newProps, el);
-    // 再patchChildren
-    patchChildren(n1, n2, el);
+    let { patchFlag } = n2;
+
+    debugger;
+    // 1.先patchProps
+    // 优化更新。props靶向更新。
+    if (patchFlag & PatchFlags.CLASS) {
+      // if (oldProps.class !== newProps.class) {
+      hostPatchProps(el, "class", null, newProps.class);
+      // }
+    } else if (patchFlag & PatchFlags.STYLE) {
+      // 这里有bug
+      // if (oldProps.style !== newProps.style) {
+      hostPatchProps(el, "style", null, newProps.style);
+      // }
+    }
+    // style、事件等
+    // 都不符合全量更新
+    else {
+      patchProps(oldProps, newProps, el);
+    }
+
+    // 2.再patchChildren
+    // 优化更新。children靶向更新。
+    if (n2.dynamicChildren) {
+      patchBlockChildren(n1, n2);
+    } else {
+      patchChildren(n1, n2, el);
+    }
   };
 
   // 处理元素节点
@@ -418,6 +451,7 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
     updateProps(instance.props, next.props);
   };
 
+  // 执行组件的render
   const setupRenderEffect = (instance: ComponentInternalInstance, container: any, anchor: any) => {
     const { render } = instance;
 
@@ -431,7 +465,7 @@ export function createRenderer(renderOptions: RendererOptions): Renderer {
         }
 
         // 1。拿到vnode
-        // 执行render函数得到的是vnode。得到的是组件的子元素。传入this
+        // 执行render函数得到的是vnode。得到的是组件的子元素。绑定this
         const subTree = render.call(instance.proxy);
 
         // 2。将vnode挂载到dom上

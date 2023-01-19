@@ -12,7 +12,7 @@ export interface VNode {
   el: any;
   key: any;
   shapeFlag: ShapeFlags;
-  patchFlag: number;
+  patchFlag: number; // 为了做到靶向更新的flag
   component?: ComponentInternalInstance; // 只有组件才有这个属性
   dynamicChildren?: any; // 动态节点，给靶向更新用的配置
 }
@@ -69,19 +69,22 @@ export function createVNode(type: any, props?: any, children?: any, patchFlag: n
     vnode.shapeFlag |= type;
   }
 
+  // 当前有currentBlock，并且检测到该vnode有被设置过patchFlag。具体更新逻辑在patchElement中体现。
   if (currentBlock && vnode.patchFlag > 0) {
+    // 将当前vnode添加到currentBlock
     currentBlock.push(vnode);
   }
 
   return vnode;
 }
 
-// 靶向更新
+/* 靶向更新 */
 let currentBlock: any = null;
 
 // 每开启一个block都有一个dynamicChildren。
 export function openBlock() {
-  // 用一个数组来收集多个动态节点
+  // 用一个数组来收集多个动态节点，这个currentBlock将会在createVnode里面被赋值
+  // 变为树结构的比较
   currentBlock = [];
 }
 
@@ -89,9 +92,12 @@ export function setupBlock(vnode: VNode) {
   // 将currentBlock设置到对应的vnode 上面
   vnode.dynamicChildren = currentBlock;
   currentBlock = null;
+  // 将这个被设置的vnode返回
   return vnode;
 }
 
+// 使用传入的属性创建一个vnode，并且将currentBlock挂载到新建的vnode上面
+// 创建block也可以传入patchFlag
 export function createElementBlock(type: any, props?: any, children?: any, patchFlag?: number) {
   return setupBlock(createVNode(type, props, children, patchFlag));
 }

@@ -5,11 +5,13 @@ import { patchProps } from "./patchProp";
 export * from "@vue/runtime-core";
 export * from "@vue/reactivity";
 
+// RenderOptions有所有NodeOps所有方法
 export interface RendererOptions extends NodeOps {
   patchProps(el: any, key: any, prevValue: any, nextValue: any): void;
 }
 
 // domAPI
+// 铸造rendererOptions
 const rendererOptions: RendererOptions = Object.assign(nodeOps, { patchProps });
 
 // runtime-dom提供默认的render方法，用于渲染dom元素.

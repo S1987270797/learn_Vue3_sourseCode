@@ -18,6 +18,7 @@
         render,
         Text,
         ref,
+        reactive,
         openBlock: _openBlock,
         createElementBlock: _createElementBlock,
         createElementVNode: _createElementVNode,
@@ -26,9 +27,16 @@
 
       const VueComponent = {
         setup() {
-          const name = ref("red");
+          const states = reactive({ name: "red", style: { color: "red" }, class: "isAClass1" });
+
+          setTimeout(() => {
+            states.name = "blue";
+            states.class = "isNotAClass1";
+            states.style.color = "blue";
+          }, 1000);
+
           return {
-            name,
+            states,
           };
         },
 
@@ -36,18 +44,23 @@
           console.log(this);
           console.log(_ctx);
 
+          // 使用_createElementBlock创建一个vnode再返回，表示这个vnode的是动态的，是随时会变化的，下次要更新只更新这部分内容就可，不用全量diff算法更新。
           let vnode =
+            // 开启一个block空间
             (_openBlock(),
+            // 创建一个block并挂载上去
             _createElementBlock("div", null, [
               _createElementVNode("h1", null, "Hello world"),
-              _createElementVNode("span", null, _toDisplayString(this.name), 1),
+              _createElementVNode("span", null, _toDisplayString(this.states.name), 1),
+              _createElementVNode("span", { class: this.states.class }, _toDisplayString(this.states.class), 2),
+              _createElementVNode("span", { style: this.states.style }, _toDisplayString(this.states.style.color), 4),
             ]));
 
           console.log(vnode);
           return vnode;
         },
       };
-
+      // debugger;
       render(h(VueComponent), app);
     </script>
   </body>

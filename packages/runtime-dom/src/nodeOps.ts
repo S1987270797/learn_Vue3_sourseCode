@@ -16,7 +16,7 @@ export interface NodeOps {
   setScopeId(elElement: any, id: any): void;
 }
 
-export const nodeOps = {
+export const nodeOps: NodeOps = {
   // 插入node
   insert: (child: any, parent: any, anchor?: any) => {
     parent.insertBefore(child, anchor || null);
